@@ -1,0 +1,3 @@
+### pcangsd
+
+pcangsd -b $beagle_file -o turtles -t 10
