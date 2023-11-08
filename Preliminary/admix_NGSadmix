@@ -14,5 +14,6 @@ module load angsd
 
 beagle="/scratch/negishi/allen715/chicken_turtles/Chicken_turtles/chrysemys_BEAGLE2/NGSadmix/genolike.beagle"
 
-#with beagle file, run ngsadmix
+#with beagle file, run ngsadmix for k=2
+#output_base_ngsadmix.qopt will contain 1 row for each individual and one column for each k 
 NGSadmix -likes "$beagle" -K 2 -o output_base_ngsadmix -P 4
