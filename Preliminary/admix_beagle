@@ -1,0 +1,19 @@
+#!/bin/bash
+#SBATCH --job-name=admix
+#SBATCH -A fnrdewoody
+#SBATCH -N 1
+#SBATCH -n 128
+#SBATCH -t 12-00:00:00
+#SBATCH --error=admix_ins.err
+#SBATCH --output=admix_ins.out
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=allen715@purdue.edu
+
+module load biocontainers
+module load angsd
+
+# Set your input BAM file list
+bam_list="/scratch/negishi/allen715/chicken_turtles/Chicken_turtles/chrysemys_BEAGLE2/bam.list"
+
+#run angsd to get beagle file for admixture
+angsd -bam "$bam_list" -GL 1 -out output_base -doMaf 2 -doMajorMinor 1 -SNP_pval 1e-6 -doIBS 2 -doCounts 1 -doCov 1 -doHWE 1
