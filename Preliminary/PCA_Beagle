@@ -1,0 +1,18 @@
+module load biocontainers
+module load angsd
+ 
+cd /scratch/bell/allen715/Chicken_turtles/chrysemys_BEAGLE2/
+
+# Set your input BAM file list
+bam_list="bam.list"
+
+# Set the reference genome FASTA file path
+ref_fasta="/scratch/bell/allen715/Chicken_turtles/chrysemys_picta_ref/ref_100kb.fa"
+
+# Set output directory
+output_dir="/scratch/bell/allen715/Chicken_turtles/chrysemys_BEAGLE2/"
+
+#generate beagle file
+angsd -GL 1 -out "$output_dir/whole_genome" -minQ 20 -P 10 \
+-doGlf 2 -doMajorMinor 1 -doMaf 1 -minMaf 0.05 -SNP_pval 1e-6 \
+-bam "$bam_list" -ref "$ref_fasta"
