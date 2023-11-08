@@ -1,0 +1,23 @@
+### R code for pca 
+
+library(ggplot2)
+library(dplyr)
+
+# Load metadata dataframe
+meta <- meta  # Update with the actual path
+
+# Load covariance matrix
+turtles.cov <- as.matrix(read.table("turtles.cov"))
+
+pca_result <- prcomp(turtles.cov, scale = TRUE)
+
+# Combine PCA results with metadata
+pca_df <- data.frame(pca_result$x)
+pca_df <- cbind(meta, pca_df)  # Combining metadata and PCA results
+
+# Create scatter plot
+pca_plot <- ggplot(pca_df, aes(x = PC1, y = PC2, color = POP)) +
+  geom_point() +
+  labs(x = "Principal Component 1", y = "Principal Component 2", title = "PCA Scatter Plot")
+
+print(pca_plot)
