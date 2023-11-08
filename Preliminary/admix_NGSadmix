@@ -1,0 +1,18 @@
+#!/bin/bash
+#SBATCH --job-name=admix
+#SBATCH -A fnrdewoody
+#SBATCH -N 1
+#SBATCH -n 64
+#SBATCH -t 12-00:00:00
+#SBATCH --error=admix2.err
+#SBATCH --output=admix2.out
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=allen715@purdue.edu
+
+module load biocontainers
+module load angsd
+
+beagle="/scratch/negishi/allen715/chicken_turtles/Chicken_turtles/chrysemys_BEAGLE2/NGSadmix/genolike.beagle"
+
+#with beagle file, run ngsadmix
+NGSadmix -likes "$beagle" -K 2 -o output_base_ngsadmix -P 4
