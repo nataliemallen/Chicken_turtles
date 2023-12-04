@@ -8,7 +8,7 @@
 
 #to run this perl script:
 
-####perl script starts here####
+####perl script starts here, from this: https://github.com/KorfLab/Assemblathon/blob/master/assemblathon_stats.pl####
 #!/usr/bin/perl
 #
 # assemblathon_stats.pl
