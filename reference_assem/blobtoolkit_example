@@ -1,0 +1,152 @@
+#!/bin/sh -l
+#SBATCH -A fnrquail
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=sjanjua@purdue.edu
+#SBATCH -N 1
+#SBATCH -n 40
+#SBATCH -t 14-00:00:00
+#SBATCH --job-name=blobtools
+#SBATCH -e blobtool
+#SBATCH -o blobtool
+
+# load modules
+module load bioinfo
+module load minimap2/2.17
+module load biocontainers
+module load blast
+module load diamond
+module load samtools
+module load anaconda
+
+# install blobtools2 (differentiate sources of sequences based on differences of coverage and GC content)
+conda create -n chicken_turtle_env -c conda-forge -y python=3.6 docopt psutil pyyaml ujson tqdm nodejs=10 yq;
+conda activate chicken_turtle_env;
+conda install -c bioconda -y pysam seqtk;
+conda install -c conda-forge -y geckodriver selenium pyvirtualdisplay;
+pip install fastjsonschema;
+cd /home/allen715/
+mkdir blobtoolkit;
+cd blobtoolkit;
+git clone https://github.com/blobtoolkit/blobtools2;
+git clone https://github.com/blobtoolkit/viewer;
+git clone https://github.com/blobtoolkit/specification;
+git clone https://github.com/blobtoolkit/insdc-pipeline;
+cd /home/allen715/blobtoolkit/blobtools2
+pip install -r requirements.txt
+cd viewer;
+npm install;
+cd ..;
+
+# add a path to search apps
+export PATH=$PATH:/depot/fnrdewoody/apps/
+export PATH=$PATH:/home/jeon96/apps/
+
+HOME=/home/jeon96/
+APP=/home/jeon96/apps/
+BASEDIR=/scratch/bell/sjanjua/towhee/step7-blobtoolkit/
+GENOME=/scratch/bell/sjanjua/towhee/step7-blobtoolkit/ICTO-purged.fa
+NT=/scratch/bell/jeon96/Practice/Blobtools2/nt/
+UNIPROT=/scratch/bell/jeon96/Practice/Blobtools2/uniprot/
+# And when you load module blast, the default environment variable BLASTDB=/depot/diagrid/apps/blast/databases/ncbi/week-23-2021/ has been attached
+
+mkdir -p ${BASEDIR}Blobtools2/Inputs/
+
+# Install NCBI database and Diamond database
+# Since you loaded blast and diamond modules from the Cluster, you might not need to locally intall these databases, but to use protein DB, you should make it into diamond DB from blastDB
+# blastdbcmd -db refseq_protein -entry all > refseq_protein.fasta; diamond makedb --in refseq_protein.fasta --db refseq_protein # Using BLASTDB=/depot/diagrid/apps/blast/databases/ncbi/week-23-2021
+# Still you need to install taxdump I guess
+mkdir -p ${BASEDIR}Blobtools2/taxdump;
+cd ${BASEDIR}Blobtools2/taxdump;
+curl -L ftp://ftp.ncbi.nih.gov/pub/taxonomy/new_taxdump/new_taxdump.tar.gz | tar xzf -;
+cd ..;
+
+#mkdir -p nt
+#wget "ftp://ftp.ncbi.nlm.nih.gov/blast/db/nt.??.tar.gz" -P nt/ && \
+#        for file in nt/*.tar.gz; \
+#            do tar xf $file -C nt && rm $file; \
+#        done
+
+# This step will take too much time (more than a day)
+#mkdir -p uniprot
+#wget -q -O uniprot/reference_proteomes.tar.gz \
+# ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/$(curl \
+#     -vs ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/reference_proteomes/ 2>&1 | \
+#     awk '/tar.gz/ {print $9}')
+#cd uniprot
+#tar xf reference_proteomes.tar.gz
+
+#touch reference_proteomes.fasta.gz
+#find . -mindepth 2 | grep "fasta.gz" | grep -v 'DNA' | grep -v 'additional' | xargs cat >> reference_proteomes.fasta.gz
+
+#echo -e "accession\taccession.version\ttaxid\tgi" > reference_proteomes.taxid_map
+#zcat */*/*.idmapping.gz | grep "NCBI_TaxID" | awk '{print $1 "\t" $1 "\t" $3 "\t" 0}' >> reference_proteomes.taxid_map
+
+#diamond makedb -p 16 --in reference_proteomes.fasta.gz --taxonmap reference_proteomes.taxid_map --taxonnodes ../taxdump/nodes.dmp -d reference_proteomes.dmnd
+#cd -
+
+
+#Fetch any BUSCO lineages that you plan to use if you don't have one yet
+#mkdir -p busco
+#wget -q -O eukaryota_odb10.gz "https://busco-data.ezlab.org/v4/data/lineages/eukaryota_odb10.2020-09-10.tar.gz" \
+#        && tar xf eukaryota_odb10.gz -C busco
+
+# make blast hit files to add in blobtools
+cd ${BASEDIR}Blobtools2/Inputs/
+blastn -db nt \
+       -query $GENOME \
+       -outfmt "6 qseqid staxids bitscore std" \
+       -max_target_seqs 10 \
+       -max_hsps 1 \
+       -evalue 1e-25 \
+       -num_threads 16 \
+       -out Towhee_purged.ncbi.blastn.out
+
+diamond blastx \
+        --query $GENOME \
+        --db ${UNIPROT}reference_proteomes \
+        --outfmt 6 qseqid staxids bitscore qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore \
+        --sensitive \
+        --max-target-seqs 1 \
+        --evalue 1e-25 \
+        --threads 16 \
+        > Towhee_purged.diamond.blastx.out
+
+# make bam file to add in Blobtools (-ax map-pb; for PacBio read)
+minimap2 -ax map-pb \
+         -t 16 $GENOME \
+         ${BASEDIR}m64108e_210612_024908.hifi_reads.fastq.gz ${BASEDIR}m64108e_210613_114828.hifi_reads.fastq.gz ${BASEDIR}m64108e_210614_204710.hifi_reads.fastq.gz ${BASEDIR}m64108e_210623_190051.hifi_reads.fastq.gz \
+| samtools sort -@16 -O BAM -o Towhee_purged.m64108e.bam -
+
+# make BlobDir
+${APP}blobtoolkit/blobtools2/blobtools create \
+    --fasta $GENOME \
+    ${BASEDIR}Blobtools2/DATASETS/Towhee
+
+
+# add Busco, Blast, Coverage files for blobtools to use (attach your full busco report tsv file)
+${APP}blobtoolkit/blobtools2/blobtools add \
+    --cov ${BASEDIR}Blobtools2/Inputs/Towhee_purged.m64108e.bam \
+    --threads 8 \
+    --busco ${BASEDIR}Busco_2/run_passeriformes_odb10/full_table.tsv \
+    --hits ${BASEDIR}Blobtools2/Inputs/Towhee_purged.ncbi.blastn.out \
+    --hits ${BASEDIR}Blobtools2/Inputs/Towhee_purged.diamond.blastx.out \
+    --taxrule bestsumorder \
+    --taxdump ${BASEDIR}Blobtools2/taxdump \
+    ${BASEDIR}Blobtools2/DATASETS/Towhee
+
+# open a dataset in the Viewer - Do below using ThinLinc (you need this because of graphical interaction) referring to the following websites
+#https://blobtoolkit.genomehubs.org/blobtools2/blobtools2-tutorials/opening-a-dataset-in-the-viewer/
+#https://blobtoolkit.genomehubs.org/btk-viewer/viewer-tutorials/hosting-a-local-instance/
+# In ThinLink, open a terminal application and as you did above, load modules, activate conda environment, and type the command below
+# Then you can get a localhost address. You can right-click it to open the address by Firefox.
+${APP}blobtoolkit/blobtools2/blobtools view --interactive ${BASEDIR}Blobtools2/DATASETS/Towhee
+
+
+# filtering (in my viewer, there were no xenobiotic sequences except no-hits)
+${APP}blobtoolkit/blobtools2/blobtools filter \
+    --param bestsumorder_phylum--Keys=no-hit \
+    --fasta $GENOME \
+    --summary STDOUT \
+    --output ${BASEDIR}Blobtools2/DATASETS/Towhee_filtered \
+    ${BASEDIR}Blobtools2/DATASETS/Towhee
+    
