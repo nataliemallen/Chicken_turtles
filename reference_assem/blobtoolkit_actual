@@ -1,0 +1,5 @@
+module load anaconda
+conda create --name blobtools2 python=3.7
+conda activate blobtools2
+conda install -c bioconda blobtools
+conda install -c conda-forge firefox geckodriver
