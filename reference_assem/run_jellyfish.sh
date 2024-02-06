@@ -28,3 +28,5 @@ jellyfish count -m $kmer_size -s 100M -t 64 -C -o $jellyfish_output $genome_file
 
 # Generate histogram
 jellyfish histo -t 64 $jellyfish_output > $histogram_output
+
+#then histogram was used as input for genomescope2 (web)
