@@ -1,0 +1,7 @@
+1. qc_reference.sh
+2. run_hifiasm.sh
+3. assembly metrics from hifiasm
+4. jellyfish and genomescope2
+5. purge_dups.sh
+6. blobtools2
+7. BUSCO
