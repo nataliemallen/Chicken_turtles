@@ -1,4 +1,4 @@
-#First, all fastq.gz files were merged
+#First, all fastq.gz files were merged and wc with qc_reference.sh
 
 #!/bin/bash
 #SBATCH --job-name=ct_assemble
