@@ -60,6 +60,8 @@ cd ${BASEDIR}Blobtools2/taxdump;
 curl -L ftp://ftp.ncbi.nih.gov/pub/taxonomy/new_taxdump/new_taxdump.tar.gz | tar xzf -;
 cd ..;
 
+#### done up to here
+
 #mkdir -p nt
 #wget "ftp://ftp.ncbi.nlm.nih.gov/blast/db/nt.??.tar.gz" -P nt/ && \
 #        for file in nt/*.tar.gz; \
