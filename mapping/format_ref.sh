@@ -46,7 +46,7 @@ PicardCommandLine CreateSequenceDictionary reference=ref_100kb.fa output=ref_100
 
 bwa index ref.fa
 samtools faidx ref.fa
-PicardCommandLine CreateSequenceDictionary reference=ref_100kb.fa output=ref.fa.dict
+PicardCommandLine CreateSequenceDictionary reference=ref.fa output=ref.fa.dict
 
 #prep repeatmasked file for later processing, create a rm.out if one is not available. 
 	module --force purge
