@@ -95,3 +95,29 @@ angsd -bam "$WARREN" -P 64 -doCounts 1 -GL 1 -doMaf 1 -doMajorMinor 1 -only_prop
 angsd -bam "$WHARTON" -P 64 -doCounts 1 -GL 1 -doMaf 1 -doMajorMinor 1 -only_proper_pairs 1 \
 -ref "$REF" -minMapQ 20 -minQ 20 -sites "$SITES" -out "$OUT_WHARTON.nohead.allele_freq"
 
+###now, calculate Dxy using calcDxy.R from angsd
+#!/bin/bash
+#SBATCH -A johnwayne
+#SBATCH --job-name=dxy
+#SBATCH -N 1
+#SBATCH -n 64
+#SBATCH -t 08-00:00:00
+#SBATCH -e %x_%j.err
+#SBATCH -o %x_%j.out
+#SBATCH --mail-user=allen715@purdue.edu
+#SBATCH --mail-type=END,FAIL
+
+module load r
+
+populations=("alazan.nohead.allele_freq.mafs" "brazoria.nohead.allele_freq.mafs" "brazos.nohead.allele_freq.mafs" "buller.nohead.allele_freq.mafs" "gordy.nohead.allele_freq.mafs" "liberty.nohead.allele_freq.mafs" "warren.nohead.allele_freq.mafs" "wharton.nohead.allele_freq.mafs")
+
+for i in "${!populations[@]}"; do
+  for j in $(seq $((i+1)) $((${#populations[@]}-1))); do
+    popA=${populations[$i]}
+    popB=${populations[$j]}
+    Rscript calcDxy.R --popA $popA --popB $popB --totLen 3000000000
+  done
+done
+
+
+
