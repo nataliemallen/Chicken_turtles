@@ -107,3 +107,6 @@ samtools depth -a ${line[0]}_filt.bam | awk '{c++; if($3>0) total+=1}END{print (
 samtools stats ${line[0]}_filt.bam > ${line[0]}_samtools_stats.txt" > ./jobs/${line[0]}_alignment.sh
 
 done < /scratch/negishi/allen715/chicken_turtles/mapping/sample.list
+
+#to run all
+#for i in `ls -1 *sh`; do  echo "sbatch $i" ; done > slurmm_jobs ; source ./slurmm_jobs
