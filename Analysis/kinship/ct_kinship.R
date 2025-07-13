@@ -6,7 +6,6 @@ kin<-read.csv("ct_nobo_relate.csv",header = T)
 #check number of sites compared and remove bad sites. In here sites less than 9950000 are removed
 hist(kin$nSites)
 
-#what is this for?? use or no?
 #kin <- kin[-which(kin$nSites < 16800000),]
 dev.off()
 # population assignment
@@ -58,6 +57,85 @@ Brazoria <- kin_new[which(kin_new$a =="Brazoria"  & kin_new$b =="Brazoria" ),]
 Gordy <- kin_new[which(kin_new$a =="Gordy"  & kin_new$b =="Gordy" ),]
 Wharton <- kin_new[which(kin_new$a =="Wharton"  & kin_new$b =="Wharton" ),]
 
+# filter for unrelated ----------------------------------------------------
+
+bounds <- matrix(c(0.423128, Inf, 0.1767767, 0.3535534,   # Parent Offspring
+                   0.2, 0.5, 0.08838835, 0.1767767,       # Half Sib
+                   0.07142857, 0.4210526, 0.04419417, 0.08838835,  # First cousins
+                   -Inf, Inf, -Inf, 0.04419417),          # Unrelated
+                 ncol = 4, byrow = TRUE)
+
+# define unrelated individuals based on bounds (R1 and KING)
+unrelated_pairs <- kin_new[
+  kin_new$R1 >= bounds[4,1] & kin_new$R1 <= bounds[4,2] &
+    kin_new$KING >= bounds[4,3] & kin_new$KING <= bounds[4,4], ]
+
+# related = anything NOT classified as unrelated
+related_pairs <- kin_new[!(
+  kin_new$R1 >= bounds[4,1] & kin_new$R1 <= bounds[4,2] &
+    kin_new$KING >= bounds[4,3] & kin_new$KING <= bounds[4,4]
+), ]
+
+# all individuals that appear in any related pair
+related_individuals <- unique(c(related_pairs$ind_a, related_pairs$ind_b))
+
+# all individuals
+all_individuals <- unique(c(kin_new$ind_a, kin_new$ind_b))
+
+# individuals not involved in any related pair
+unrelated_individuals <- setdiff(all_individuals, related_individuals)
+
+# join pop info to unrelated individuals
+unrelated_df <- data.frame(sample_ID = unrelated_individuals)
+unrelated_with_pop <- merge(unrelated_df, pop[, c("sample_ID", "pop")], by = "sample_ID")
+
+# export
+write.csv(unrelated_with_pop, "unrelated_individuals_with_pop.csv", row.names = FALSE)
+
+
+# distantly related -------------------------------------------------------
+
+# keep unrelated (row 4) OR first cousins (row 3)
+keep_pairs <- kin_new[
+  (
+    kin_new$R1 >= bounds[3,1] & kin_new$R1 <= bounds[3,2] &
+      kin_new$KING >= bounds[3,3] & kin_new$KING <= bounds[3,4]
+  ) |
+    (
+      kin_new$R1 >= bounds[4,1] & kin_new$R1 <= bounds[4,2] &
+        kin_new$KING >= bounds[4,3] & kin_new$KING <= bounds[4,4]
+    ),
+]
+
+# define related pairs = anything closer than first cousins (rows 1 and 2)
+related_pairs <- kin_new[
+  (
+    kin_new$R1 >= bounds[1,1] & kin_new$R1 <= bounds[1,2] &
+      kin_new$KING >= bounds[1,3] & kin_new$KING <= bounds[1,4]
+  ) |
+    (
+      kin_new$R1 >= bounds[2,1] & kin_new$R1 <= bounds[2,2] &
+        kin_new$KING >= bounds[2,3] & kin_new$KING <= bounds[2,4]
+    ),
+]
+
+# individuals involved in closer relationships (PO or half-sib)
+related_individuals <- unique(c(related_pairs$ind_a, related_pairs$ind_b))
+
+# all individuals from the kept pairs (unrelated or 3rd-degree)
+all_included <- unique(c(keep_pairs$ind_a, keep_pairs$ind_b))
+
+# remove anyone who shows up in a closer relationship
+filtered_individuals <- setdiff(all_included, related_individuals)
+
+# join pop info
+final_df <- data.frame(sample_ID = filtered_individuals)
+final_with_pop <- merge(final_df, pop[, c("sample_ID", "pop")], by = "sample_ID")
+
+write.csv(final_with_pop, "unrelated_plus_3rd_degree_with_pop.csv", row.names = FALSE)
+
+
+# relatedness plots ------------------------------------------------------
 
 ###plot with dots as relationships - all individuals
 # Set up the plot
